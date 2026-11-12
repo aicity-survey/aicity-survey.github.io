@@ -12,11 +12,12 @@
   let S = null, META = null, C = [], N = 0, CID = [], PAIRS = [], OPEN = true;
   function applyConfig(cfg) {
     S = cfg; META = cfg.meta; C = cfg.criteria; N = C.length; CID = C.map(c => c.id);
+    S.services = [];
     PAIRS = [];
     for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) PAIRS.push([i, j]);
   }
-  const CAT = { '교통': ['#3767A6', 'T'], '안전·방재': ['#A0495E', 'S'], '환경·에너지': ['#2F7D57', 'E'], '복지·보건': ['#7A5BA8', 'W'], '행정·시민참여': ['#4F6176', 'G'], '도시기반시설': ['#8A6A2F', 'I'] };
-  function catOf(name) { const x = CAT[name] || ['#4F6176', 'G']; return { name: name || '기타', color: x[0], icon: x[1] }; }
+  const CAT = [[/교통|물류|모빌리티/, '#3767A6', 'T'], [/방범|방재|안전/, '#A0495E', 'S'], [/환경|에너지|수자원/, '#2F7D57', 'E'], [/보건|의료|복지|주거/, '#7A5BA8', 'W'], [/시설물|기반시설/, '#8A6A2F', 'I'], [/행정|근로|고용|문화|관광|기타/, '#4F6176', 'G']];
+  function catOf(name) { const x = CAT.find(c => c[0].test(name || '')) || [null, '#4F6176', 'G']; return { name: name || '기타', color: x[1], icon: x[2] }; }
   const pkey = (i, j) => CID[i] + CID[j];
   const RI = { 3: 0.58, 4: 0.90, 5: 1.12, 6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45 };
   const P1_LABELS = ['전혀 적절하지 않음', '적절하지 않음', '보통', '적절함', '매우 적절함'];
@@ -335,7 +336,7 @@
             h('div', null,
               h('p', { class: 'eyebrow' }, `${META.project} · ${META.title}`),
               h('h1', { id: 'pageTitle', tabindex: '-1' }, `${META.round} 조사에 `, h('em', null, '참여해 주셔서'), ' 감사합니다'),
-              h('p', { class: 'lead' }, '1차 결과를 확인하신 뒤 평가항목의 적절성을 다시 검토하고, 평가항목 간 중요도와 후보 서비스 40종을 평가해 주십시오.')),
+              h('p', { class: 'lead' }, `1차 결과를 확인하신 뒤 평가항목의 적절성을 다시 검토하고, 평가항목 간 중요도와 후보 서비스 ${META.nsvc}종을 평가해 주십시오.`)),
             h('div', { class: 'whoami' },
               h('div', { class: 'k' }, '응답자 확인'),
               h('div', { class: 'nm' }, `${R.name} 위원님`),
@@ -343,12 +344,12 @@
               h('p', { class: 'not-me' }, '본인이 아니신가요? ', h('button', { type: 'button', class: 'link', onclick: logout }, '나가기'), META.contact ? ` · 문의 ${META.contact}` : ''))),
           h('div', { class: 'facts' },
             fact('조사 기간', META.period),
-            fact('예상 소요 시간', `약 ${META.estMinutes}분 · 나눠서 응답 가능`),
+            fact('예상 소요 시간', `${META.estText} · 나눠서 응답 가능`),
             fact('저장 방식', '자동 저장 · 다시 들어오면 이어서 응답'))),
         h('div', { class: 'parts' },
           part('1부', '평가항목 적절성 재검토', '1차 점수와 전체 전문가 응답을 비교하고 2차 점수를 정합니다.', ['6문항', '약 3분']),
           part('2부', '평가항목 중요도', '두 항목씩 비교해 어느 쪽이 더 중요한지 답합니다. 응답 일관성이 바로 계산됩니다.', ['쌍대비교 15개', '약 7분']),
-          part('3부', '후보 서비스 평가', '서비스 카드를 읽고 6개 평가항목별로 점수를 매깁니다.', ['40종 × 6항목', '약 30분'])),
+          part('3부', '후보 서비스 평가', '서비스 카드를 읽고 6개 평가항목별로 점수를 매깁니다. 카드 분량이 많아 나눠서 응답하셔도 됩니다.', [`${META.nsvc}종 × 6항목`, '카드 읽기 포함 가장 깁니다'])),
         h('section', { class: 'card privacy', 'aria-labelledby': 'pvt' },
           h('h3', { id: 'pvt' }, '개인정보 처리 안내'),
           h('dl', null,
@@ -572,7 +573,7 @@
           h('span', { class: 'top' }, h('span', { class: 'no' }, String(idx + 1).padStart(2, '0')), svcChip(s.id)),
           h('span', { class: 'cat', style: { color: cat.color } }, dot, cat.name),
           h('h3', null, s.name),
-          h('p', null, s.summary)));
+          h('p', null, s.sec && s.sec.summary ? s.sec.summary.map(x => x[1]).join(' ') : '')));
       }));
       if (!list.length) grid.replaceChildren(h('li', { class: 'note' }, '해당하는 서비스가 없습니다.'));
     };
@@ -592,10 +593,52 @@
     };
   }
 
+  /* ---------- 서비스 카드 (요약판) ---------- */
+  let IMG_KEY = null;
+  const IMG_URL = new Map();
+  async function imgKey() {
+    if (IMG_KEY || !S.imgKey) return IMG_KEY;
+    const raw = Uint8Array.from(atob(S.imgKey), c => c.charCodeAt(0));
+    IMG_KEY = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+    return IMG_KEY;
+  }
+  async function imgSrc(name) {
+    if (IMG_URL.has(name)) return IMG_URL.get(name);
+    const p = (async () => {
+      const key = await imgKey();
+      const buf = await (await fetch(name, { cache: 'force-cache' })).arrayBuffer();
+      const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: new Uint8Array(buf, 0, 12) }, key, new Uint8Array(buf, 12));
+      return URL.createObjectURL(new Blob([plain], { type: 'image/jpeg' }));
+    })();
+    IMG_URL.set(name, p);
+    p.catch(() => IMG_URL.delete(name));
+    return p;
+  }
+  function encImg(name, alt) {
+    const im = h('img', { alt: alt || '', decoding: 'async' });
+    imgSrc(name).then(u => { im.src = u; im.parentNode && im.parentNode.classList.add('ready'); }).catch(() => { if (im.parentNode) im.parentNode.classList.add('err'); });
+    return im;
+  }
+  function openImg(name, title) {
+    const dlg = h('dialog', { class: 'lightbox', 'aria-label': `${title} 서비스 이미지` },
+      encImg(name, `${title} 서비스 이미지`),
+      h('div', { class: 'lb-bar' }, h('span'), h('button', { type: 'button', class: 'btn small', onclick: () => dlg.close() }, '닫기')));
+    dlg.addEventListener('close', () => dlg.remove());
+    dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });
+    document.body.append(dlg);
+    dlg.showModal();
+  }
+  const txt = items => (items || []).map(x => x[1]);
+  function list(items) { return h('ul', { class: 'sec-list' }, (items || []).map(([k, t]) => k === 'h' ? h('li', { class: 'sub-h' }, t) : h('li', { class: k === 's' ? 'sub' : null }, t))); }
+  function tags(items) { return h('div', { class: 'tags' }, txt(items).map(t => h('span', null, t))); }
+  function block(title, body, extra) { return h('section', { class: 'cblock' + (extra ? ' ' + extra : '') }, h('h4', null, title), body); }
+  const NONE = () => h('p', { class: 'none' }, '카드에 기재 없음');
+
   function viewP3Detail() {
     const idx = st.p3cur;
     const s = ORDER[idx];
     const cat = catOf(s.cat);
+    const sec = s.sec || {};
     const chipBox = h('span', null, svcChip(s.id));
     const doneMsg = h('div', { class: 'done-chip', 'aria-live': 'polite' });
     const updDone = () => {
@@ -617,29 +660,47 @@
     ta.value = st.p3note[s.id] || '';
     ta.addEventListener('input', () => { st.p3note[s.id] = ta.value; persist(); });
     updDone();
+    const imgs = s.images || [];
     const band = h('div', { class: 'svc-band', style: { background: cat.color } },
       h('span', { class: 'ic' }, icon(cat.icon, { color: '#fff' })),
       h('div', null,
-        h('div', { class: 'meta' }, h('span', null, cat.name), s.stage ? h('span', null, `추진 단계 ${s.stage}`) : null),
+        h('div', { class: 'meta' }, h('span', null, cat.name), s.no ? h('span', null, `카드 번호 ${String(s.no).padStart(2, '0')}`) : null),
         h('h2', { id: 'pageTitle', tabindex: '-1' }, s.name)));
+    const gallery = imgs.length ? h('div', { class: 'gallery' + (imgs.length > 1 ? ' multi' : '') }, imgs.slice(0, 4).map((im, i) =>
+      h('button', { type: 'button', class: 'g-item', onclick: () => openImg(im.src, s.name), 'aria-label': `서비스 이미지 ${i + 1} 크게 보기` },
+        encImg(im.src, ''),
+        i === 3 && imgs.length > 4 ? h('span', { class: 'more' }, `+${imgs.length - 4}`) : null))) : null;
+    const body = [
+      sec.summary ? h('p', { class: 'lead2' }, txt(sec.summary).join(' ')) : null,
+      h('div', { class: 'facts2' },
+        h('div', null, h('div', { class: 'k' }, '서비스 대상'), h('div', { class: 'v' }, txt(sec.target).join(' / ') || '카드에 기재 없음')),
+        h('div', null, h('div', { class: 'k' }, '적용 사례'), h('div', { class: 'v' }, txt(sec.cases).join(' / ') || '카드에 기재 없음'))),
+      gallery,
+      sec.features ? block('주요 기능', list(sec.features)) : null,
+      sec.goal ? block('목표', h('p', { class: 'ptext' }, txt(sec.goal).join(' '))) : null,
+      sec.background ? block('서비스 배경', list(sec.background)) : null,
+      sec.status ? block('현재 수준', list(sec.status)) : null,
+      block('적용 기술', sec.tech ? tags(sec.tech) : NONE()),
+      block('데이터허브 연계', sec.hub ? list(sec.hub) : NONE()),
+      h('div', { class: 'cgrid' },
+        block('입력 데이터', sec.input ? tags(sec.input) : NONE()),
+        block('출력 데이터', sec.output ? tags(sec.output) : NONE())),
+      h('div', { class: 'cgrid' },
+        block('후보 KPI', sec.kpi ? tags(sec.kpi) : NONE()),
+        block('확산 리스크', sec.risk ? list(sec.risk) : NONE())),
+      s.raw ? h('details', { class: 'raw' }, h('summary', null, '카드 원문 전체 보기'), h('div', { class: 'raw-text' }, s.raw)) : null
+    ];
     return {
       body: [
         h('div', { class: 'svc-top' },
           h('button', { class: 'btn small', type: 'button', onclick: () => { st.p3view = 'list'; go('p3'); } }, icon('list'), '전체 목록'),
           h('span', { class: 'pos' }, '서비스 ', h('b', null, String(idx + 1)), ` / ${ORDER.length}`),
           chipBox),
-        h('div', { class: 'svc' },
-          h('article', { class: 'card svc-card', 'aria-labelledby': 'pageTitle' }, band,
-            h('div', { class: 'svc-body' },
-              s.img ? h('figure', { class: 'svc-img' }, h('img', { src: s.img, alt: `${s.name} 서비스 카드`, loading: 'lazy', referrerpolicy: 'no-referrer' }), h('a', { href: s.img, target: '_blank', rel: 'noopener noreferrer' }, '카드 크게 보기')) : null,
-              s.summary ? h('p', { class: 'sum' }, s.summary) : null,
-              h('dl', null,
-                s.features.length ? h('div', null, h('dt', null, '주요 기능'), h('dd', null, h('ul', null, s.features.map(f => h('li', null, f))))) : null,
-                s.data.length ? h('div', null, h('dt', null, '활용 데이터'), h('dd', null, h('div', { class: 'tags' }, s.data.map(d => h('span', null, d))))) : null,
-                s.effect ? h('div', null, h('dt', null, '기대 효과'), h('dd', null, s.effect)) : null))),
+        h('div', { class: 'svc svc-rich' },
+          h('article', { class: 'card svc-card', 'aria-labelledby': 'pageTitle' }, band, h('div', { class: 'svc-body' }, body)),
           h('section', { class: 'card rate', 'aria-labelledby': 'rate-h' },
             h('h3', { id: 'rate-h' }, '평가항목별 점수'),
-            h('p', { class: 'sub' }, '이 서비스가 각 평가항목을 얼마나 충족하는지 선택해 주십시오.'),
+            h('p', { class: 'sub' }, '카드 내용을 보고 이 서비스가 각 평가항목을 얼마나 충족하는지 선택해 주십시오.'),
             h('div', { class: 'rate-ends', 'aria-hidden': 'true' }, h('span'), h('div', null, h('span', null, '1 매우 낮음'), h('span', null, '3 보통'), h('span', null, '5 매우 높음'))),
             h('div', { class: 'rrows' }, rows),
             doneMsg,
@@ -795,7 +856,7 @@
           h('p', { class: 'gv-eyebrow' }, `${META.project} · ${META.title}`),
           h('h1', { id: 'pageTitle', tabindex: '-1' }, `${META.round} 전문가 조사`),
           h('p', { class: 'gv-lead' }, '우수 서비스 선정을 위한 평가항목과 후보 서비스에 대해 1차 결과를 바탕으로 위원님의 의견을 다시 여쭙습니다.'),
-          h('ul', { class: 'gv-facts' }, fact('조사 기간', META.period), fact('소요 시간', `약 ${META.estMinutes}분 · 나눠서 응답 가능`), fact('구성', '적절성 · 중요도 · 서비스 40종'))),
+          h('ul', { class: 'gv-facts' }, fact('조사 기간', META.period), fact('소요 시간', `${META.estText} · 나눠서 응답 가능`), fact('구성', `적절성 · 중요도 · 서비스 ${META.nsvc}종`))),
         h('div', { class: 'gate-form' },
           h('h2', { class: 'gf-title' }, msg ? '나가기 완료' : '본인 확인'),
           h('p', { class: 'gf-sub' }, msg || '확인 후 위원님의 1차 결과와 2차 설문이 열립니다.'),
@@ -858,6 +919,8 @@
     st.submittedAt = server ? server.submittedAt || null : null;
     st.receipt = server ? server.receipt || null : null;
     if (!st.submittedAt) st.editedAfterSubmit = false;
+    S.imgKey = res.imgKey || '';
+    S.services = Array.isArray(res.services) ? res.services.map(x => Object.assign({}, x, { images: (x.images || []).map(src => ({ src })) })) : [];
     ORDER = shuffled(S.services, hashStr(token));
     st.p3cur = Math.min(st.p3cur || 0, Math.max(0, ORDER.length - 1));
     if (!st.consent) st.step = 'intro';
