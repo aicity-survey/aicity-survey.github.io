@@ -30,11 +30,16 @@
   const KEY = t => 'delphi2:r2-4-v2:' + t;
 
   /* ---------- 서버 통신 (구글 앱스 스크립트 웹앱) ---------- */
+  function requestUrl() {
+    const u = new URL(CFG.api, location.href);
+    u.searchParams.set('_cb', Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+    return u.href;
+  }
   async function rpc(action, payload, timeoutMs) {
     const ctl = new AbortController();
     const tm = setTimeout(() => ctl.abort(), timeoutMs || 45000);
     try {
-      const res = await fetch(CFG.api, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ action, schemaVersion: SCHEMA }, payload || {})), signal: ctl.signal, cache: 'no-store', redirect: 'follow' });
+      const res = await fetch(requestUrl(), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ action, schemaVersion: SCHEMA }, payload || {})), signal: ctl.signal, cache: 'no-store', redirect: 'follow' });
       if (!res.ok) throw new Error('http');
       return await res.json();
     } finally { clearTimeout(tm); }
@@ -45,7 +50,7 @@
     load: t => rpc('load', { token: t }),
     save: (t, data) => rpc('save', { token: t, data }),
     submit: (t, data, order) => rpc('submit', { token: t, data, order }, 45000),
-    beacon(t, data) { try { navigator.sendBeacon(CFG.api, new Blob([JSON.stringify({ action: 'save', token: t, data })], { type: 'text/plain;charset=utf-8' })); } catch (e) { /* 무시 */ } },
+    beacon(t, data) { try { navigator.sendBeacon(requestUrl(), new Blob([JSON.stringify({ action: 'save', token: t, data })], { type: 'text/plain;charset=utf-8' })); } catch (e) { /* 무시 */ } },
     clear(t) {
       try { localStorage.removeItem(KEY(t)); } catch (e) { /* 무시 */ }
       try { sessionStorage.removeItem(SKEY); } catch (e) { /* 무시 */ }
