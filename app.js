@@ -369,7 +369,7 @@
             h('dt', null, '보유 기간'), h('dd', null, META.retention || '연구 종료 후 파기')),
           h('label', { class: 'check', for: 'consent' }, cb, h('span', null, '위 내용을 확인했으며 조사에 참여합니다'))),
         h('div', { class: 'start-actions' }, startBtn,
-          h('button', { class: 'btn', type: 'button', onclick: () => p1Go(0) }, '1차 결과·개편 안내부터 보기'),
+          h('button', { class: 'btn', type: 'button', onclick: () => p1Go(0) }, '개편 안내·1차 결과부터 보기'),
           h('p', { class: 'note' }, '본인만 응답해 주십시오. 중간에 나가셔도 자동 저장되며, 다시 들어오시면 이어서 응답하실 수 있습니다.'))
       ],
       nav: null
@@ -377,7 +377,7 @@
   }
 
   /* ---------- 1부: 기존 결과 참고 / 수정안 신규 평가 ---------- */
-  const P1STAGES = ['1차 결과·개편 안내', '수정 항목·전체 구성 평가'];
+  const P1STAGES = ['개편 안내·1차 결과', '수정 항목·전체 구성 평가'];
   function p1Go(n) { st.p1stage = n > 0 ? 1 : 0; go('p1'); }
   function officialFigure(name, title) {
     return h('figure', { class: 'official-figure' },
@@ -390,9 +390,25 @@
       h('p', { class: 'checks' }, h('b', null, '세부검토 기준  '), x.checks),
       provenance ? h('p', { class: 'origin' }, h('span', { class: 'chip small' }, x.action), ' ' + x.origin) : null)));
   }
+  function frameworkTable(c, context, heading) {
+    const base = context + '-' + c.id;
+    const labels = ['세부항목', '평가정의·핵심질문', '세부검토 기준', '기존 항목'];
+    const cell = (index, content, cls, rowId) => h('td', { headers: rowId + ' ' + base + '-h' + index, class: cls || '', role: 'cell' }, h('span', { class: 'mobile-cell-label', 'aria-hidden': 'true' }, labels[index]), h('div', { class: 'cell-value' }, content));
+    return h('section', { class: 'framework-group' },
+      heading ? h('div', { class: 'framework-group-head' }, h('h3', { id: base + '-title' }, shortId(c.id) + '. ' + c.name), h('p', null, c.researchDecision + ' · ' + c.change)) : null,
+      h('table', { class: 'framework-table', role: 'table' },
+        h('caption', { class: 'sr' }, c.name + '의 세부 평가체계 4개 항목'),
+        h('colgroup', null, h('col', { class: 'col-item' }), h('col', { class: 'col-question' }), h('col', { class: 'col-check' }), h('col', { class: 'col-source' })),
+        h('thead', { role: 'rowgroup' }, h('tr', { role: 'row' }, labels.map((t, i) => h('th', { scope: 'col', id: base + '-h' + i, role: 'columnheader' }, t)))),
+        h('tbody', { role: 'rowgroup' }, (c.sub || []).map(x => {
+          const rowId = base + '-' + x.id;
+          return h('tr', { role: 'row' }, h('th', { scope: 'row', id: rowId, role: 'rowheader' }, x.id + '. ' + x.name),
+            cell(1, x.question, '', rowId), cell(2, x.checks, '', rowId),
+            cell(3, [h('span', { class: 'source-text' }, x.origin), h('span', { class: 'revision-tag revision-' + x.action }, x.action)], 'source-cell', rowId));
+        }))));
+  }
   function frameworkView() {
-    return h('div', { class: 'official-framework' }, C.map(c => h('section', { class: 'card framework-card' },
-      h('h3', null, badge(c.id), ' ' + c.name), subcriteriaList(c, true))));
+    return h('div', { class: 'official-framework expanded-framework' }, C.map(c => frameworkTable(c, 'intro', true)));
   }
   function overallQuestion() {
     const note = h('textarea', { id: 'p1note', placeholder: '누락된 내용, 여전히 중복되는 부분, 통합·분리가 필요한 내용 등을 자유롭게 적어 주십시오.', maxlength: '2000' });
@@ -407,28 +423,27 @@
   function viewP1() {
     const stage = Number(st.p1stage) > 0 ? 1 : 0;
     const body = stage === 0 ? [
-      pageHead('1부 · 수정 평가항목 검토', '1차 결과와 평가체계 개편 내용을 확인해 주십시오', '전체 전문가의 1차 결과와 위원님의 1차 응답을 확인한 뒤, 전문가 의견을 반영한 개편 내용을 살펴봐 주십시오.'),
-      h('section', { class: 'r17-section' }, h('h3', null, '1차 조사 결과와 나의 응답'),
-        h('p', { class: 'note' }, '전체 N=' + META.n1 + ' · 기존 6개 모두 4·5점 응답 비율 75% 이상 충족 · 이 결과는 참고자료이며 새 점수를 입력하는 부분이 아닙니다.'),
-        h('div', { class: 'legacy-results' }, LEGACY.map(c => legacyResult(c)))),
+      pageHead('1부 · 평가체계 개편 안내', '전문가 의견을 반영해 평가항목을 재조정했습니다', '조정 경위와 개편된 평가체계를 먼저 확인하신 뒤, 아래의 기존 1차 전체 결과와 본인 응답을 참고해 주십시오.'),
       h('section', { class: 'card revision-intro' },
-        h('h3', null, '전문가 의견을 반영해 6개 항목을 4개로 정리했습니다'),
-        h('p', null, '1차 조사에서는 기존 6개 항목 모두 적절성 기준을 충족했으나, 자유의견에서 평가항목과 세부항목 간 중복 등이 제기되었습니다. 연구진은 이를 검토하여 6개 주요 항목·24개 세부항목을 4개 주요 항목·16개 세부항목으로 통합·조정했습니다.'),
-        h('p', { class: 'independent' }, '집단 결과에 맞출 의무는 없으며 위원님의 판단을 존중합니다.'),
-        h('p', { class: 'note' }, '이번에는 개편된 항목과 전체 구성의 적절성을 새로 평가합니다. 기존 점수의 유지·조정으로 분류하지 않습니다. 개편 이전 2차 응답은 별도로 보관하며 이번 확정안의 응답으로 자동 이전하지 않습니다.')),
-      h('section', { class: 'r17-section' }, h('h3', null, '평가항목 개편구조'),
-        officialFigure('xbf120d257aab4a88.bin', '우수서비스 평가체계 개편: 6개 평가항목 → 4개 평가항목'),
-        h('div', { class: 'change-summaries' }, C.map(c => h('article', { class: 'card change-summary' },
-          h('h4', null, shortId(c.id) + '. ' + c.name), h('p', { class: 'composition' }, c.researchDecision), h('p', null, c.change))))),
-      h('details', { class: 'framework-details' }, h('summary', null, '개편된 평가체계표 · 16개 세부항목 보기'), frameworkView(),
-        h('details', { class: 'raw' }, h('summary', null, '연구진 제공 평가체계표 원본 보기'), officialFigure('x9036e67da7a625db.bin', '개편된 평가체계표 원본')))
+        h('h3', null, '6개 평가항목·24개 세부항목에서 4개 평가항목·16개 세부항목으로'),
+        h('p', null, '1차 전문가 설문에서는 기존 6개 항목 모두 4·5점 응답 비율 75% 이상을 충족했습니다. 다만 자유의견에서 일부 평가항목과 세부항목의 중복 등이 제기되어, 연구진이 이를 검토하고 항목을 통합·조정했습니다.'),
+        h('p', null, '이번 조사에서는 개편된 4개 항목과 전체 구성의 적절성을 새로 검토해 주십시오. 기존 점수를 유지하거나 조정하는 방식의 재평가가 아닙니다.'),
+        h('p', { class: 'independent' }, '집단 결과에 맞출 의무는 없으며 위원님의 판단을 존중합니다.')),
+      h('section', { class: 'r17-section' }, h('h3', null, '평가항목 개편구조'), officialFigure('xbf120d257aab4a88.bin', '우수서비스 평가체계 개편: 6개 평가항목 → 4개 평가항목')),
+      h('section', { class: 'r17-section framework-section' },
+        h('div', { class: 'framework-title' }, h('h3', null, '개편된 평가체계표'), h('button', { type: 'button', class: 'btn small', onclick: () => openImg('x9036e67da7a625db.bin', '연구진 제공 평가체계표 원본') }, '원본 이미지 크게 보기')),
+        h('p', { class: 'table-guide' }, '아래 표는 개편된 4개 평가항목과 16개 세부항목의 정의·검토 기준을 설명합니다. 기존 A1~F4는 1차 세부항목의 기호입니다.'), frameworkView()),
+      h('section', { class: 'r17-section first-round-reference' },
+        h('h3', null, '기존 1차 전체 결과와 나의 1차 응답'),
+        h('p', { class: 'note' }, '아래는 개편 전 6개 항목에 대한 1차 결과입니다(전체 N=' + META.n1 + '). 개편된 4개 항목의 이전 점수가 아니며, 조정 경위를 이해하기 위한 참고자료입니다.'),
+        h('div', { class: 'legacy-results' }, LEGACY.map(c => legacyResult(c))))
     ] : [
       pageHead('1부 · 수정 항목·전체 구성 평가', '개편된 항목과 전체 구성의 적절성을 평가해 주십시오', '4개 주요 평가항목마다 1~5점으로 답해 주십시오. 각 항목의 세부내용은 판단을 돕는 기준이며, 16개 세부항목별로 점수를 매기는 것은 아닙니다.'),
       h('div', { class: 'items revised-items' }, C.map(c => revisedItem(c))), overallQuestion()
     ];
     return {
       body: [h('nav', { class: 'p1-stages', 'aria-label': '1부 진행 단계' }, P1STAGES.map((t, i) => h('button', { class: stage === i ? 'active' : '', type: 'button', 'aria-current': stage === i ? 'step' : null, onclick: () => p1Go(i) }, h('span', null, String(i + 1)), t))), ...body],
-      nav: navbar(stage ? { label: '이전: 1차 결과·개편 안내', on: () => p1Go(0) } : { label: '시작 화면', on: () => go('intro') }, !stage ? { label: '다음: 적절성 평가', on: () => p1Go(1) } : { label: '다음: 중요도 평가', on: () => go('p2') }, () => [h('b', null, p1ItemCount() + '/' + N), ' 항목 · 전체 구성 ', st.overallScore ? '응답' : '미응답'])
+      nav: navbar(stage ? { label: '이전: 개편 안내·1차 결과', on: () => p1Go(0) } : { label: '시작 화면', on: () => go('intro') }, !stage ? { label: '다음: 적절성 평가', on: () => p1Go(1) } : { label: '다음: 중요도 평가', on: () => go('p2') }, () => [h('b', null, p1ItemCount() + '/' + N), ' 항목 · 전체 구성 ', st.overallScore ? '응답' : '미응답'])
     };
   }
   function sourceNames(c) {
@@ -465,13 +480,9 @@
     const related = (c.sourceIds || []).map(id => LEGACY.find(o => o.id === id)).filter(Boolean);
     return h('article', { class: 'card revision-item', id: 'p1-' + c.id, 'aria-labelledby': 'h-' + c.id },
       h('div', { class: 'item-h' }, badge(c.id), h('h3', { id: 'h-' + c.id }, c.name)),
-      h('dl', { class: 'revision-definition' },
-        h('dt', null, '핵심질문 요약'), h('dd', null, c.def),
-        h('dt', null, '세부 내용'), h('dd', null, subcriteriaList(c, false)),
-        h('dt', null, '변경 안내'), h('dd', null, c.change || '연구진 변경 내용 입력 대기')),
-      h('details', { class: 'related-legacy' }, h('summary', null, '관련된 기존 항목의 1차 결과 보기'),
-        h('p', { class: 'note' }, '기존 항목의 참고 결과이며, 수정된 항목의 이전 점수를 뜻하지 않습니다.'),
-        related.length ? related.map(x => legacyResult(x)) : h('p', { class: 'note' }, '연구진이 기존 항목과의 연결 관계를 확정하면 표시됩니다.')),
+      h('p', { class: 'criterion-summary' }, c.def),
+      frameworkTable(c, 'answer', false),
+      h('p', { class: 'criterion-change' }, h('b', null, '조정 내용  '), c.change),
       h('h4', { id: 'q-' + c.id, class: 'answer-q' }, '이 항목은 우수 서비스 선정 기준으로 얼마나 적절합니까?'),
       scoreControl('p1-' + c.id, 'q-' + c.id, () => (st.p1[c.id] || {}).score, v => { st.p1[c.id] = { score: v }; }));
   }

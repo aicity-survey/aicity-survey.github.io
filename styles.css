@@ -689,3 +689,46 @@ details.raw summary { cursor: pointer; font-size: 13.5px; font-weight: 600; colo
 .subcriterion .origin { margin-top:6px; color:var(--muted-t); font-size:11px; }
 .facts { grid-template-columns:repeat(2,minmax(0,1fr)); }
 @media(max-width:700px) { .p1-stages button { font-size:12px; padding:12px 6px; } .change-summaries { grid-template-columns:1fr; } .framework-card { padding:18px; } .framework-card h3 { font-size:16px; } .subcriterion { padding-left:10px; } }
+
+/* 원본 4열 평가체계표: 접지 않고 상시 제공 */
+.framework-section { margin-top:30px; }
+.framework-title { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:12px; }
+.framework-title h3 { font-size:20px; }
+.table-guide { font-size:14px; line-height:1.7; color:var(--muted-t); margin:0 0 16px; }
+.expanded-framework { gap:24px; }
+.framework-group { border:1px solid #C9D6E0; border-radius:10px; overflow:hidden; background:#fff; margin:18px 0; }
+.framework-group-head { background:#1E3446; color:#fff; padding:18px 20px; }
+.framework-group-head h3 { font-size:20px; line-height:1.45; margin:0; }
+.framework-group-head p { color:#E2EBF0; font-size:15px; line-height:1.65; margin-top:7px; }
+.framework-table { width:100%; border-collapse:collapse; table-layout:fixed; font-size:16px; line-height:1.7; }
+.framework-table .col-item { width:21%; }.framework-table .col-question { width:31%; }.framework-table .col-check { width:31%; }.framework-table .col-source { width:17%; }
+.framework-table th,.framework-table td { padding:16px; border:1px solid #CED9E1; vertical-align:top; text-align:left; overflow-wrap:anywhere; word-break:keep-all; }
+.framework-table thead th { background:#E9F0F4; font-weight:700; font-size:16px; color:#1E3446; }
+.framework-table tbody th { background:#F6F9FB; font-size:16px; font-weight:600; color:#17242F; }
+.framework-table tbody tr:last-child th,.framework-table tbody tr:last-child td { border-bottom:0; }
+.framework-table th:first-child { border-left:0; }.framework-table td:last-child,.framework-table th:last-child { border-right:0; }
+.mobile-cell-label { display:none; }
+.cell-value { min-width:0; }
+.source-text { display:block; font-size:16px; }
+.revision-tag { display:inline-block; margin-top:10px; border:1px solid #9BAFBE; padding:2px 9px; border-radius:5px; font-size:15px; font-weight:700; color:#25475E; background:#F3F7FA; }
+.revision-통합 { background:#EFF5FB; color:#244D75; border-color:#9EB8D3; }.revision-수정 { background:#FFF6E8; color:#785017; border-color:#D6B67F; }.revision-유지 { background:#EDF6F0; color:#285C3D; border-color:#A8C5B2; }
+.criterion-summary { margin:18px 0; font-size:16px; line-height:1.85; }
+.criterion-change { color:#405D70; font-size:15px; line-height:1.7; margin:14px 0 22px; }
+.first-round-reference { border-top:2px solid #C5D4DE; padding-top:26px; margin-top:38px; }
+@media(max-width:760px) {
+ .framework-title { display:block; }.framework-title .btn { margin-top:10px; }
+ .framework-group-head { padding:16px; }.framework-group-head h3 { font-size:18px; }
+ .framework-group-head p { font-size:15px; }
+ .framework-table,.framework-table tbody,.framework-table tr { display:block; width:100%; }
+ .framework-table colgroup { display:none; }
+ .framework-table thead { position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%); }
+ .framework-table tbody tr { border-top:2px solid #B9CBD8; }
+ .framework-table tbody tr:first-child { border-top:0; }
+ .framework-table tbody th,.framework-table tbody td { display:block; width:100%; border:0; padding:12px 16px; font-size:16px; }
+ .framework-table tbody th { background:#EAF1F5; padding:15px 16px; font-size:17px; }
+ .framework-table tbody td+td { border-top:1px solid #E2E9EF; }
+ .mobile-cell-label { display:block; font-size:14px; font-weight:700; color:#506777; margin-bottom:5px; }
+ .framework-table .source-cell .cell-value { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+ .framework-table .revision-tag { margin-top:0; }
+ .revision-item { padding:20px 16px; }.criterion-summary { font-size:16px; }
+}
