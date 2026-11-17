@@ -936,7 +936,7 @@
     if (!S) {
       renderBoot('조사 화면을 불러오는 중입니다…');
       try { const cfg = await Api.config(); if (!cfg || !cfg.ok) throw new Error('cfg'); applyConfig(cfg); }
-      catch (e) { renderBoot('수정된 4개 평가항목을 준비 중입니다. 현재 화면에서는 응답을 저장하지 않습니다. 연구진의 안내를 확인해 주십시오.'); return; }
+      catch (e) { renderBoot('조사 서버 연결이 지연되고 있습니다. 잠시 후 새로고침해 주십시오. 계속 열리지 않으면 연구진에게 수기 작성용 설문을 요청해 주십시오.'); return; }
     }
     token = readToken();
     if (!token) { renderGate(false); return; }
