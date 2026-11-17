@@ -139,6 +139,7 @@
   const p1Count = () => p1ItemCount() + (st.overallScore >= 1 && st.overallScore <= 5 ? 1 : 0);
   const P1TOTAL = () => N + 1;
   const shortId = id => String(id).replace(/^R2/, '');
+  const wa = s => { const c = String(s).charCodeAt(String(s).length - 1); return c >= 0xAC00 && c <= 0xD7A3 && (c - 0xAC00) % 28 ? '과' : '와'; };
   const pairDone = k => { const a = st.p2[k]; return !!a && (a.side === 'E' || (!!a.side && !!a.v)); };
   const p2Count = () => PAIRS.filter(([i, j]) => pairDone(pkey(i, j))).length;
   const svcCount = sid => CID.filter(id => st.p3[sid] && st.p3[sid][id]).length;
@@ -174,8 +175,8 @@
     return { w, lambda, CI, CR, dev };
   }
   function ratioText(i, j, x, approx) {
-    if (x > 1.05) return `${CID[i]} 쪽 ${approx ? '약 ' + x.toFixed(1) : Math.round(x)}`;
-    if (x < 1 / 1.05) return `${CID[j]} 쪽 ${approx ? '약 ' + (1 / x).toFixed(1) : Math.round(1 / x)}`;
+    if (x > 1.05) return `${shortId(CID[i])} 쪽 ${approx ? '약 ' + x.toFixed(1) : Math.round(x)}`;
+    if (x < 1 / 1.05) return `${shortId(CID[j])} 쪽 ${approx ? '약 ' + (1 / x).toFixed(1) : Math.round(1 / x)}`;
     return '같음';
   }
 
@@ -532,18 +533,18 @@
       stChip.className = 'chip' + (done ? ' ok' : '');
       stChip.textContent = done ? '응답 완료' : '미응답';
       if (!x.side) sum.replaceChildren('더 중요한 항목을 고르거나 ‘같음’을 선택해 주십시오.');
-      else if (x.side === 'E') sum.replaceChildren(h('b', null, `${ci.id}와 ${cj.id}`), '는 같은 정도로 중요 (1)');
+      else if (x.side === 'E') sum.replaceChildren(h('b', null, `${shortId(ci.id)}와 ${shortId(cj.id)}`), '는 같은 정도로 중요 (1)');
       else {
         const [p, q] = x.side === 'L' ? [ci, cj] : [cj, ci];
-        if (!x.v) sum.replaceChildren(h('b', null, `${p.id}`), `가 더 중요 · 얼마나 더 중요한지 선택해 주십시오.`);
-        else sum.replaceChildren(h('b', null, p.id), `가 ${q.id}보다 `, h('b', null, `‘${INT_NAME[x.v]}’`), ` (${x.v})`);
+        if (!x.v) sum.replaceChildren(h('b', null, `${shortId(p.id)}`), `가 더 중요 · 얼마나 더 중요한지 선택해 주십시오.`);
+        else sum.replaceChildren(h('b', null, shortId(p.id)), `가 ${shortId(q.id)}보다 `, h('b', null, `‘${INT_NAME[x.v]}’`), ` (${x.v})`);
       }
     };
     upd();
     return h('li', { class: 'card pair', id: `pair-${k}` },
       h('div', { class: 'pair-top' }, h('b', null, `비교 ${idx + 1} / ${PAIRS.length}`), stChip),
       h('fieldset', { class: 'sides' },
-        h('legend', { class: 'sr' }, `비교 ${idx + 1}: ${ci.name}와 ${cj.name} 중 더 중요한 항목`),
+        h('legend', { class: 'sr' }, `비교 ${idx + 1}: ${ci.name}${wa(ci.name)} ${cj.name} 중 더 중요한 항목`),
         side('L', 'l', [badge(ci.id), h('span', null, ci.name)], `${ci.name} 쪽이 더 중요`),
         side('E', 'eq', '같음', '두 항목이 같은 정도로 중요'),
         side('R', 'r', [badge(cj.id), h('span', null, cj.name)], `${cj.name} 쪽이 더 중요`)),
@@ -574,7 +575,7 @@
         h('p', null, ok ? '기준(0.1 이하)을 충족합니다.' : '기준 0.1을 넘습니다. 아래 비교를 다시 살펴봐 주십시오. 판단을 바꿀 의무는 없습니다.')));
       if (!ok) {
         kids.push(h('div', { class: 'recheck' }, r.dev.slice(0, 3).map(d => h('button', { type: 'button', onclick: () => jumpPair(pkey(d.i, d.j)) },
-          h('b', null, `비교 ${d.idx + 1} · ${CID[d.i]} ↔ ${CID[d.j]}`),
+          h('b', null, `비교 ${d.idx + 1} · ${shortId(CID[d.i])} ↔ ${shortId(CID[d.j])}`),
           h('span', null, `응답: ${ratioText(d.i, d.j, d.a)} / 다른 응답들로 본 예상: ${ratioText(d.i, d.j, d.implied, true)}`)))));
       }
     }
@@ -703,7 +704,7 @@
     const rows = C.map(c => {
       const cur = st.p3[s.id] && st.p3[s.id][c.id];
       return h('fieldset', { class: 'rrow' },
-        h('legend', { class: 'sr' }, `${c.id} ${c.name}`),
+        h('legend', { class: 'sr' }, `${shortId(c.id)} ${c.name}`),
         h('div', { class: 'rrow-in' },
           h('span', { class: 'rlabel', 'aria-hidden': 'true' }, badge(c.id), h('span', null, c.name)),
           h('div', { class: 'opts' }, [1, 2, 3, 4, 5].map(v => h('label', { class: 'opt' },
@@ -864,10 +865,10 @@
       h('p', null, '전체 구성의 적절성: ' + (st.overallScore ? st.overallScore + '점' : '미응답')),
       h('p', null, '종합의견: ' + (st.p1note || '없음')),
       h('h4', null, '2부 평가항목 중요도' + (r ? ` · 일관성 비율 ${r.CR.toFixed(3)}` : '')),
-      r ? tbl(['평가항목', '가중치'], CID.map((id, i) => [`${id} ${C[i].name}`, `${(r.w[i] * 100).toFixed(1)}%`])) : null,
-      tbl(['비교', '응답'], PAIRS.map(([i, j], idx) => { const a = st.p2[pkey(i, j)] || {}; const x = a.side === 'L' ? a.v : a.side === 'R' ? 1 / a.v : 1; return [`${idx + 1}. ${CID[i]} ↔ ${CID[j]}`, a.side ? ratioText(i, j, x) : '-']; })),
+      r ? tbl(['평가항목', '가중치'], CID.map((id, i) => [`${shortId(id)} ${C[i].name}`, `${(r.w[i] * 100).toFixed(1)}%`])) : null,
+      tbl(['비교', '응답'], PAIRS.map(([i, j], idx) => { const a = st.p2[pkey(i, j)] || {}; const x = a.side === 'L' ? a.v : a.side === 'R' ? 1 / a.v : 1; return [`${idx + 1}. ${shortId(CID[i])} ↔ ${shortId(CID[j])}`, a.side ? ratioText(i, j, x) : '-']; })),
       h('h4', null, '3부 후보 서비스 평가'),
-      tbl(['서비스', ...CID], ORDER.map((s, idx) => [`${idx + 1}. ${s.name}`, ...CID.map(id => (st.p3[s.id] && st.p3[s.id][id]) ? String(st.p3[s.id][id]) : '-')]))
+      tbl(['서비스', ...CID.map(shortId)], ORDER.map((s, idx) => [`${idx + 1}. ${s.name}`, ...CID.map(id => (st.p3[s.id] && st.p3[s.id][id]) ? String(st.p3[s.id][id]) : '-')]))
     ];
   }
 
