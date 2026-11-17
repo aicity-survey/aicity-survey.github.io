@@ -32,7 +32,7 @@
   /* ---------- 서버 통신 (구글 앱스 스크립트 웹앱) ---------- */
   async function rpc(action, payload, timeoutMs) {
     const ctl = new AbortController();
-    const tm = setTimeout(() => ctl.abort(), timeoutMs || 25000);
+    const tm = setTimeout(() => ctl.abort(), timeoutMs || 45000);
     try {
       const res = await fetch(CFG.api, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ action, schemaVersion: SCHEMA }, payload || {})), signal: ctl.signal, cache: 'no-store', redirect: 'follow' });
       if (!res.ok) throw new Error('http');
@@ -457,9 +457,6 @@
         h('span', { class: 'face' }, h('b', null, String(v)), h('small', null, P1_LABELS[v - 1])))))), h('div', { class: 'scale-ends', 'aria-hidden': 'true' }, h('span', null, '1 전혀 적절하지 않음'), h('span', null, '5 매우 적절함')), status);
   }
   function revisedItem(c) {
-    const note = h('textarea', { id: 'rs-' + c.id, placeholder: '이 항목에 대한 보완 의견을 적어 주십시오.', maxlength: '1000' });
-    note.value = (st.p1[c.id] || {}).reason || '';
-    note.addEventListener('input', () => { st.p1[c.id] = Object.assign({}, st.p1[c.id], { reason: note.value }); persist(); });
     const related = (c.sourceIds || []).map(id => LEGACY.find(o => o.id === id)).filter(Boolean);
     return h('article', { class: 'card revision-item', id: 'p1-' + c.id, 'aria-labelledby': 'h-' + c.id },
       h('div', { class: 'item-h' }, badge(c.id), h('h3', { id: 'h-' + c.id }, c.name)),
@@ -470,9 +467,8 @@
       h('details', { class: 'related-legacy' }, h('summary', null, '관련된 기존 항목의 1차 결과 보기'),
         h('p', { class: 'note' }, '기존 항목의 참고 결과이며, 수정된 항목의 이전 점수를 뜻하지 않습니다.'),
         related.length ? related.map(x => legacyResult(x)) : h('p', { class: 'note' }, '연구진이 기존 항목과의 연결 관계를 확정하면 표시됩니다.')),
-      h('h4', { id: 'q-' + c.id, class: 'answer-q' }, '이 수정 항목은 적절한가요?'),
-      scoreControl('p1-' + c.id, 'q-' + c.id, () => (st.p1[c.id] || {}).score, v => { st.p1[c.id] = Object.assign({}, st.p1[c.id], { score: v }); }),
-      h('label', { class: 'field-label', for: 'rs-' + c.id }, '항목별 보완 의견', h('small', null, '선택')), note);
+      h('h4', { id: 'q-' + c.id, class: 'answer-q' }, '이 항목은 우수 서비스 선정 기준으로 얼마나 적절합니까?'),
+      scoreControl('p1-' + c.id, 'q-' + c.id, () => (st.p1[c.id] || {}).score, v => { st.p1[c.id] = { score: v }; }));
   }
 
   /* ---------- 2부: AHP 쌍대비교 ---------- */
