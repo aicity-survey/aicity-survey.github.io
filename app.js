@@ -496,7 +496,7 @@
     return {
       body: [
         pageHead('2부 · 평가항목 중요도 (쌍대비교)', '두 항목 중 더 중요한 쪽을 골라 주십시오',
-          '우수 서비스를 선정할 때 두 평가항목 중 어느 쪽이 더 중요한지 고르고, 얼마나 더 중요한지 선택해 주십시오. 15개 비교를 모두 마치면 응답의 일관성 비율(CR)이 바로 계산되며, 0.1 이하이면 일관된 응답으로 봅니다.'),
+          '우수 서비스를 선정할 때 두 평가항목 중 어느 쪽이 더 중요한지 고르고, 얼마나 더 중요한지 선택해 주십시오. 6개 비교를 모두 마치면 응답의 일관성 비율(CR)이 바로 계산되며, 0.1 이하이면 일관된 응답으로 봅니다.'),
         h('div', { class: 'guide', 'aria-label': '척도 안내' },
           h('span', { class: 'g' }, h('b', null, '1'), '같음'),
           h('span', { class: 'g' }, h('b', null, '3'), '약간 중요'),
@@ -559,7 +559,7 @@
       h('div', { class: 'prog', 'aria-hidden': 'true' }, h('i', { style: { width: `${(done / PAIRS.length) * 100}%` } }))
     ];
     if (!r) {
-      kids.push(h('p', { class: 'note', style: { marginTop: '12px' } }, '15개 비교를 모두 마치면 항목별 중요도(가중치)와 응답 일관성을 바로 계산해 보여 드립니다.'));
+      kids.push(h('p', { class: 'note', style: { marginTop: '12px' } }, '6개 비교를 모두 마치면 항목별 중요도(가중치)와 응답 일관성을 바로 계산해 보여 드립니다.'));
     } else {
       const order = CID.map((id, i) => ({ i, w: r.w[i] })).sort((a, b) => b.w - a.w);
       const mx = order[0].w;
@@ -635,7 +635,7 @@
     return {
       body: [
         pageHead('3부 · 후보 서비스 평가', `후보 서비스 ${ORDER.length}종을 평가해 주십시오`,
-          '서비스 카드를 읽고 6개 평가항목별로 1~5점을 선택해 주십시오. 서비스 순서는 순서 효과를 줄이기 위해 위원님마다 다르게 배치됩니다. 중간에 멈추셔도 자동 저장되며 다시 들어오시면 이어서 응답하실 수 있습니다.'),
+          '서비스 카드를 읽고 4개 평가항목별로 1~5점을 선택해 주십시오. 서비스 순서는 순서 효과를 줄이기 위해 위원님마다 다르게 배치됩니다. 중간에 멈추셔도 자동 저장되며 다시 들어오시면 이어서 응답하실 수 있습니다.'),
         h('section', { class: 'card p3-sum' },
           h('div', { class: 'big' }, String(done), h('small', null, ` / ${ORDER.length} 완료`)),
           h('div', { class: 'prog', 'aria-hidden': 'true' }, h('i', { style: { width: `${(p3Ratings() / (ORDER.length * N)) * 100}%` } })),
