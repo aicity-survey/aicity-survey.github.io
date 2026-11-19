@@ -821,7 +821,7 @@
           crBad ? h('label', { class: 'check', for: 'crack' }, ack, h('span', null, '2부 일관성 비율이 0.1을 넘지만, 현재 판단을 유지하고 제출합니다')) : null,
           submitBtn, subMsg,
           !complete ? h('p', { class: 'note' }, `아직 선택하지 않은 문항이 ${remaining}개 있습니다.`) : null,
-          h('p', { class: 'note' }, `제출 후에도 마감(${META.deadline}) 전까지 다시 들어와 수정하고 다시 제출하실 수 있습니다.`))
+          h('p', { class: 'note' }, `제출 후에도 마감(2026-11-19 23:59) 전까지 다시 들어와 수정하고 다시 제출하실 수 있습니다.`))
       ],
       nav: navbar({ label: '이전: 서비스 평가', on: () => { st.p3view = 'list'; go('p3'); } }, null, () => [complete ? '모든 문항 응답 완료' : `남은 문항 ${remaining}개`])
     };
