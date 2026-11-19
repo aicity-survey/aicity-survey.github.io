@@ -272,6 +272,10 @@
       u.small.textContent = u.s.cnt();
       u.bar.style.width = Math.round(u.s.frac() * 100) + '%';
       u.btn.classList.toggle('done', u.s.frac() >= 1);
+      const locked = gate(id) !== id;
+      u.btn.setAttribute('aria-disabled', locked ? 'true' : 'false');
+      u.btn.style.opacity = locked ? '.45' : '';
+      u.btn.title = locked ? '앞 단계를 먼저 완료해 주십시오' : '';
     }
     if (ui.mid) ui.mid();
   }
@@ -301,8 +305,22 @@
   }
 
   /* ---------- 화면 이동 ---------- */
+  /* 1부 → 2부 → 3부 순서 잠금: 앞 단계를 모두 응답해야 다음 단계가 열린다 */
+  const GATE_MSG = {
+    p1: '1부(평가항목 적절성)를 먼저 완료해 주십시오. 1부의 모든 문항에 응답하시면 2부가 열립니다.',
+    p2: '2부(평가항목 중요도)를 먼저 완료해 주십시오. 2부의 비교를 모두 마치시면 3부가 열립니다.'
+  };
+  function gate(step) {
+    if (step === 'p2' || step === 'p3' || step === 'review') {
+      if (p1Count() < P1TOTAL()) return 'p1';
+      if (step !== 'p2' && p2Count() < PAIRS.length) return 'p2';
+    }
+    return step;
+  }
   function go(step, after) {
     if (!st.consent && step !== 'intro') { step = 'intro'; }
+    const gated = gate(step);
+    if (gated !== step) { ui.notice = GATE_MSG[gated]; step = gated; after = null; }
     if (!OPEN && step !== 'done') step = st.submittedAt ? 'done' : 'closed';
     st.step = step;
     persistQuiet();
@@ -322,7 +340,12 @@
   function render() {
     ui.mid = null;
     const view = (VIEWS[st.step] || VIEWS.intro)();
-    const main = h('main', { id: 'main', tabindex: '-1' }, h('div', { class: 'wrap' }, view.body));
+    const wrapEl = h('div', { class: 'wrap' }, view.body);
+    if (ui.notice) {
+      wrapEl.prepend(h('div', { role: 'alert', style: { margin: '0 0 16px', padding: '14px 16px', border: '1px solid #E8B96A', background: '#FFF6E6', color: '#6B4300', borderRadius: '12px', fontWeight: '600', lineHeight: '1.55' } }, ui.notice));
+      ui.notice = null;
+    }
+    const main = h('main', { id: 'main', tabindex: '-1' }, wrapEl);
     const nodes = [];
     nodes.push(header(), main, footer());
     if (view.nav) nodes.push(view.nav);
@@ -984,7 +1007,7 @@
     ORDER = shuffled(S.services, hashStr(token));
     st.p3cur = Math.min(st.p3cur || 0, Math.max(0, ORDER.length - 1));
     if (!st.consent) st.step = 'intro';
-    if (res.test && !base) { st.consent = true; st.step = 'p1'; st.p1stage = 0; }
+    if (st.consent && st.step !== 'intro' && st.step !== 'done') { const g0 = gate(st.step); if (g0 !== st.step) { ui.notice = GATE_MSG[g0]; st.step = g0; } }
     if (!OPEN && st.step !== 'done') st.step = st.submittedAt ? 'done' : 'closed';
     render();
     window.scrollTo(0, 0);
